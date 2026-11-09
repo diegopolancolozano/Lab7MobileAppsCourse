@@ -9,10 +9,13 @@ class PublishPostUseCase {
 
   Future<void> call(String content, {PickedPhoto? photo}) async {
     final text = content.trim();
-    if (text.isEmpty) throw Exception('Escribe algo antes de publicar');
+    if (text.isEmpty && photo == null) {
+      throw Exception('Escribe algo o agrega una foto');
+    }
     if (text.length > maxLength) {
       throw Exception('Máximo $maxLength caracteres');
     }
-    await _posts.create(text);
+    final imagePath = photo == null ? null : await _posts.uploadImage(photo);
+    await _posts.create(text, imagePath: imagePath);
   }
 }

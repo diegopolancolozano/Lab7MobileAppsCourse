@@ -20,10 +20,15 @@ class SupabaseProfileDataSource {
   Future<Profile> getProfile(String id) async {
     try {
       final row = await _client.from('profiles').select().eq('id', id).single();
+      final path = row['avatar_path'] as String?;
       return Profile(
         id: row['id'] as String,
         username: row['username'] as String,
         fullName: row['full_name'] as String,
+        avatarPath: path,
+        avatarUrl: path == null
+            ? null
+            : _client.storage.from('avatars').getPublicUrl(path),
       );
     } on PostgrestException catch (e) {
       throw Exception(e.message);
@@ -31,6 +36,10 @@ class SupabaseProfileDataSource {
   }
 
   Future<void> updateAvatarPath(String id, String path) async {
-    throw UnimplementedError();
+    try {
+      await _client.from('profiles').update({'avatar_path': path}).eq('id', id);
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    }
   }
 }
