@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:moviles_auth/components/session_guard.dart';
 
 import 'package:moviles_auth/features/compose/ui/bloc/compose_bloc.dart';
 import 'package:moviles_auth/features/compose/ui/screens/compose_screen.dart';
@@ -41,11 +42,21 @@ class App extends StatelessWidget {
           create: (_) => RegisterBloc(),
           child: const RegisterScreen(),
         ),
-        '/home': (_) =>
-            BlocProvider(create: (_) => FeedBloc(), child: const HomeScreen()),
-        '/compose': (_) => BlocProvider(
-          create: (_) => ComposeBloc(),
-          child: const ComposeScreen(),
+        '/home': (_) => SessionGuard(
+          hasSession: () =>
+              Supabase.instance.client.auth.currentSession != null,
+          builder: (_) => BlocProvider(
+            create: (_) => FeedBloc(),
+            child: const HomeScreen(),
+          ),
+        ),
+        '/compose': (_) => SessionGuard(
+          hasSession: () =>
+              Supabase.instance.client.auth.currentSession != null,
+          builder: (_) => BlocProvider(
+            create: (_) => ComposeBloc(),
+            child: const ComposeScreen(),
+          ),
         ),
       },
     );
