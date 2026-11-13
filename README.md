@@ -1,68 +1,49 @@
 # Laboratorio 7 · Fotos en el muro
 
-Punto de partida del **Laboratorio 7**: el muro del Laboratorio 6, ya resuelto, al que le faltan las fotos. La guía paso a paso está en el visor del curso, en la lección *Laboratorio 7 · Fotos en el muro*.
+Aplicación Flutter con autenticación, muro, likes, foto de perfil y posts con imagen.
 
-- **Parte 1 · Foto de perfil.** Subir la foto, guardar su path en `profiles` y mostrarla en el perfil y junto a cada post.
-- **Parte 2 · Posts con imagen (avanzada).** El composer adjunta una foto, la muestra antes de publicar y el muro la pinta bajo el texto.
+## Proyecto configurado
 
-Las fotos de perfil van en un **bucket público**, `avatars`: se muestran con una URL fija. Las de los posts van en un **bucket privado**, `post-images`: solo quien inició sesión las ve, a través de URLs firmadas.
+La app y la CLI usan **lab-7**, identificador `zwlzratjsphupqqjwywp`. `lib/main.dart` contiene su URL y clave pública. No se guarda ninguna clave administrativa en la app.
 
-## Cómo correrlo
+El proyecto remoto contiene `profiles`, `posts` y `likes`, además de:
 
-1. Pon la `Project URL` y la `publishable key` de **tu** proyecto de Supabase en `lib/main.dart`.
-2. Conecta la carpeta con tu proyecto de Supabase, el mismo del Laboratorio 6:
+- `avatars`: público, máximo 2 MiB, JPEG/PNG/WebP.
+- `post-images`: privado, máximo 2 MiB, JPEG/PNG/WebP; las URLs se firman por una hora.
 
-```bash
-npx supabase init
-npx supabase link --project-ref TU_IDENTIFICADOR
-npx supabase migration fetch --linked
-```
+Las cinco migraciones de `supabase/migrations/` se descargaron del historial remoto. Las dos migraciones originales de noviembre 9 se conservan en `docs/migraciones-originales/`: sus cambios ya están en el historial remoto y no deben volver a aplicarse.
 
-   Reemplaza el `config.toml` que crea `init` por el del curso, y sigue los pasos del laboratorio para los buckets y las migraciones nuevas.
-3. Corre la app:
+## Ejecutar
 
-```bash
+```powershell
 flutter pub get
 flutter run
 ```
 
-## Qué ya funciona
+Registrarse con correo y contraseña, iniciar sesión y abrir el perfil. El botón de cámara cambia el avatar. En Nuevo post, Agregar foto abre la galería, se muestra la vista previa y Quitar foto elimina el adjunto antes de publicar. Se permiten publicaciones con texto, imagen o ambos.
 
-- **Todo el Laboratorio 6.** Registro, inicio de sesión, el muro paginado, los «me gusta» y publicar texto.
-- **Las dependencias y los permisos.** `image_picker` y `uuid` en el `pubspec.yaml`, los textos de permiso en `ios/Runner/Info.plist` y el permiso de archivos en los `entitlements` de macOS.
-- **Toda la interfaz.** `Avatar`, el botón de cámara de `ProfilePage`, el botón *Agregar foto*, la vista previa y *Quitar foto* de `ComposeScreen`, y la imagen de `PostCard`. Los dos botones de foto todavía no lanzan su evento: `() {}`.
-- **Las entidades y los contratos.** `PickedPhoto`, `Profile` con `avatarPath` y `avatarUrl`, `Post` con `authorAvatarUrl`, `imagePath` e `imageUrl`, y los contratos `AvatarRepository`, `ProfileRepository` y `PostRepository` completos.
-- **Los eventos y los estados.** `AvatarChangeRequested`, `ComposePhotoRequested`, `ComposePhotoRemoved`, `FeedState.avatarStatus` y `ComposeState.photo`, con sus `copyWith`.
+Para el registro inmediato del laboratorio, desactivar Confirm email en Authentication → Sign In / Providers del proyecto remoto. El `config.toml` local no cambia por sí solo esa configuración remota.
 
-Los métodos nuevos de cada capa ya existen con su firma, pero su cuerpo es `throw UnimplementedError()`. Los `on` nuevos de los Bloc solo imprimen el evento que reciben. Cuando conectes los botones, verás en la consola:
+## Verificar
 
-```text
-FeedBloc recibió AvatarChangeRequested()
-ComposeBloc recibió ComposePhotoRequested()
+```powershell
+flutter analyze --no-pub
+flutter test --no-pub
+npx supabase migration list --remote
 ```
 
-## Qué te toca
+Las pruebas de interfaz usan Bloc en memoria. Comprueban navegación, eventos, adjuntar/quitar/volver a adjuntar una foto, estados y likes.
 
-**Parte 1**
+La prueba real se ejecuta por separado:
 
-- `avatar/domain/usecases/change_avatar_usecase.dart`: `call`.
-- `avatar/data/source/device_photo_data_source.dart`: `pick`.
-- `avatar/data/source/supabase_avatar_data_source.dart`: `upload` con nombre aleatorio y `remove`.
-- `avatar/data/repository/avatar_repository_impl.dart`: los tres métodos, delegando.
-- `auth/data/source/supabase_profile_data_source.dart` y su `Impl`: `updateAvatarPath`, y la URL pública en `getProfile`.
-- `posts/data/source/supabase_post_data_source.dart`: `avatar_path` en el select y su URL pública en `_toPost`.
-- `home/ui/bloc/feed_bloc.dart`: el `on` de `AvatarChangeRequested`.
-- `home/ui/screens/home_screen.dart`: que `onChangePhoto` lance `AvatarChangeRequested`.
+```powershell
+./tools/test-supabase.ps1
+```
 
-**Parte 2**
+Requiere Supabase CLI autenticada y acceso administrativo al proyecto. El script crea una cuenta temporal confirmada sin enviar correos y pasa sus credenciales solo mediante variables de entorno. La prueba usa la clave pública para login, perfil, reemplazo del avatar, publicación de texto con imagen y solo imagen, lectura del muro, URLs firmadas, privacidad del bucket, likes y cierre de sesión. Al terminar elimina los archivos y la cuenta temporal; las filas dependientes se eliminan por cascada.
 
-- `posts/domain/usecases/pick_post_image_usecase.dart`: `call`.
-- `posts/domain/usecases/publish_post_usecase.dart`: subir la foto antes de crear el post.
-- `posts/data/source/supabase_post_image_data_source.dart`: `upload` y `signedUrl`.
-- `posts/data/repository/post_repository_impl.dart`: `pickImage`, `uploadImage` e `imageUrl`.
-- `posts/data/source/supabase_post_data_source.dart`: `image_path` en `create`, en el select y en `_toPost`.
-- `posts/domain/usecases/get_feed_usecase.dart` y `get_my_posts_usecase.dart`: completar cada post con la URL firmada de su imagen.
-- `compose/ui/bloc/compose_bloc.dart`: los `on` de la foto, y pasar `state.photo` al publicar.
-- `compose/ui/screens/compose_screen.dart`: que *Agregar foto* lance `ComposePhotoRequested`.
+La prueba real no comprueba el registro por correo, el selector nativo de galería ni espera una hora para comprobar la expiración. Esos pasos se verifican manualmente en un dispositivo.
 
-`flutter test` comprueba que la interfaz lanza los eventos correctos.
+## Alcance de seguridad del laboratorio
+
+El esquema remoto sigue la consigna mínima: las tablas públicas no tienen RLS y las políticas de Storage permiten operaciones a cualquier usuario autenticado en cada bucket. La restricción por carpeta de usuario aparece como reto opcional en el enunciado. Esta configuración requiere reforzarse antes de usar la app fuera del laboratorio.

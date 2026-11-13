@@ -38,7 +38,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
     final photo = state.photo;
     if (photo == null) {
       return OutlinedButton.icon(
-        onPressed: () {},
+        onPressed: () =>
+            context.read<ComposeBloc>().add(ComposePhotoRequested()),
         icon: const Icon(Icons.add_photo_alternate_outlined),
         label: const Text('Agregar foto'),
       );

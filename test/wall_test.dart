@@ -149,6 +149,30 @@ Post _post(String id, {int likes = 0, bool mine = false}) => Post(
 const _profile = Profile(id: 'u1', username: 'ana.dev', fullName: 'Ana Gómez');
 
 void main() {
+  testWidgets('ComposeScreen attaches, removes and reattaches a photo', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<ComposeBloc>(
+          create: (_) => _FakeComposeBloc(),
+          child: const ComposeScreen(),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Agregar foto'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.text('Agregar foto'), findsNothing);
+    await tester.tap(find.byTooltip('Quitar foto'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsNothing);
+    expect(find.text('Agregar foto'), findsOneWidget);
+    await tester.tap(find.text('Agregar foto'));
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsOneWidget);
+  });
+
   test('Post.copyWith only changes the likes', () {
     final liked = _post('p1', likes: 2).copyWith(likeCount: 3, likedByMe: true);
     expect(liked.likeCount, 3);
